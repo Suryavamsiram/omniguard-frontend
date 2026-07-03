@@ -1,33 +1,37 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ToastProvider } from '@/components/ui/toast'
+import { Layout } from '@/components/layout/Layout'
 import DashboardPage from './pages/DashboardPage'
 import DocumentsPage from './pages/DocumentsPage'
 import WorkflowsPage from './pages/WorkflowsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import SearchPage from './pages/SearchPage'
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+    },
+  },
+})
+
 function App() {
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <h1>OmniGuard</h1>
-        <nav>
-          <NavLink to="/" end>Dashboard</NavLink>
-          <NavLink to="/documents">Documents</NavLink>
-          <NavLink to="/workflows">Workflows</NavLink>
-          <NavLink to="/notifications">Notifications</NavLink>
-          <NavLink to="/search">Search</NavLink>
-        </nav>
-      </aside>
-      <main className="content">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/workflows" element={<WorkflowsPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/search" element={<SearchPage />} />
-        </Routes>
-      </main>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/workflows" element={<WorkflowsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/search" element={<SearchPage />} />
+          </Routes>
+        </Layout>
+      </ToastProvider>
+    </QueryClientProvider>
   )
 }
 
