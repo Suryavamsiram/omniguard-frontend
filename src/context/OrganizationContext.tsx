@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import { organizationService, Organization } from '@/services/organizations.service'
+import { setOrganizationContext } from '@/services/api'
 import { useAuth } from './AuthContext'
 
 interface OrganizationContextType {
@@ -21,6 +22,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const setCurrentOrganization = useCallback((org: Organization) => {
     setCurrentOrganizationState(org)
     organizationService.setCurrentOrganization(org)
+    setOrganizationContext(org.id)
   }, [])
 
   const refreshOrganizations = useCallback(async () => {
@@ -34,6 +36,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const storedOrg = await organizationService.getCurrentOrganization()
       if (storedOrg && response.data.some(o => o.id === storedOrg.id)) {
         setCurrentOrganizationState(storedOrg)
+        setOrganizationContext(storedOrg.id)
       } else if (response.data.length > 0) {
         setCurrentOrganization(response.data[0])
       }
@@ -50,12 +53,14 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     } else {
       setCurrentOrganizationState(null)
       setOrganizations([])
+      setOrganizationContext('')
     }
   }, [isAuthenticated, user, refreshOrganizations])
 
   useEffect(() => {
     const handleOrgChange = (event: CustomEvent<Organization>) => {
       setCurrentOrganizationState(event.detail)
+      setOrganizationContext(event.detail.id)
     }
 
     window.addEventListener('organization:changed', handleOrgChange as EventListener)

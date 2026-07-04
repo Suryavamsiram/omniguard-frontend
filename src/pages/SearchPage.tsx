@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search as SearchIcon, Sparkles, ListFilter as Filter, History, FileText, ChevronDown, Clock, ArrowUpRight, CircleAlert as AlertCircle } from 'lucide-react'
+import { Search as SearchIcon, Sparkles, ListFilter as Filter, History, FileText, Clock, ArrowUpRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { SearchResultSkeleton } from '@/components/common/skeletons'
-import { ErrorState, UnauthorizedState, EmptyState } from '@/components/common/states'
+import { ErrorState, EmptyState } from '@/components/common/states'
+import { useSemanticSearch } from '@/hooks'
 import type { SearchResult } from '@/types'
 
 const searchHistory = [
@@ -23,37 +22,26 @@ const searchHistory = [
 function SearchPage() {
   const [query, setQuery] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
+  const [lastQuery, setLastQuery] = useState('')
   const [searchParams, setSearchParams] = useState({
     top_k: 10,
     similarity_threshold: 0.6,
   })
 
-  const searchMutation = useMutation({
-    mutationFn: async (searchQuery: string) => {
-      const { data } = await axios.get('/api/v1/search/semantic', {
-        params: {
-          organization_id: 1,
-          query: searchQuery,
-          top_k: searchParams.top_k,
-          similarity_threshold: searchParams.similarity_threshold,
-        },
-      })
-      return data
-    },
-    onSuccess: () => {
-      setHasSearched(true)
-    },
-  })
+  const searchMutation = useSemanticSearch()
 
   const handleSearch = () => {
     if (query.trim()) {
-      searchMutation.mutate(query)
+      setLastQuery(query)
+      searchMutation.mutate(
+        { query, ...searchParams },
+        { onSuccess: () => setHasSearched(true) }
+      )
     }
   }
 
   const results = searchMutation.data?.results as SearchResult[] | undefined
   const isLoading = searchMutation.isPending
-  const error = searchMutation.error
   const isError = searchMutation.isError
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -135,11 +123,7 @@ function SearchPage() {
 
       {isLoading && <SearchResultSkeleton />}
 
-      {isError && !isLoading && (
-        (error as any)?.response?.status === 401
-          ? <UnauthorizedState />
-          : <ErrorState onRetry={handleSearch} />
-      )}
+      {isError && !isLoading && <ErrorState onRetry={handleSearch} />}
 
       {!isLoading && !isError && (
         <div className="grid gap-6 lg:grid-cols-[1fr,280px]">
@@ -147,7 +131,7 @@ function SearchPage() {
             {results && results.length > 0 && (
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {results.length} results for "{searchMutation.variables}"
+                  {results.length} results for "{lastQuery}"
                 </p>
                 <Badge variant="secondary">{searchParams.similarity_threshold}+ similarity</Badge>
               </div>
@@ -181,7 +165,7 @@ function SearchPage() {
                 >
                   <SearchResultCard
                     result={result}
-                    searchQuery={searchMutation.variables || ''}
+                    searchQuery={lastQuery}
                   />
                 </motion.div>
               ))}
@@ -217,7 +201,8 @@ function SearchPage() {
                     className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors"
                     onClick={() => {
                       setQuery(item.query)
-                      searchMutation.mutate(item.query)
+                      setLastQuery(item.query)
+                      searchMutation.mutate({ query: item.query, ...searchParams })
                     }}
                   >
                     <span className="truncate">{item.query}</span>

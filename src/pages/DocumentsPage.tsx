@@ -1,5 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Upload, Search, ListFilter as Filter, MoveHorizontal as MoreHorizontal, FileCheck, Clock, Tag, Download, Eye, Trash2, X, CloudUpload } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +8,7 @@ import { cn, formatDate } from '@/lib/utils'
 import { TableSkeleton } from '@/components/common/skeletons'
 import { ErrorState, UnauthorizedState, EmptyState } from '@/components/common/states'
 import { useState, useCallback, useRef } from 'react'
+import { useDocuments } from '@/hooks'
 import type { Document } from '@/types'
 
 const documentTypeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -25,14 +24,7 @@ function DocumentsPage() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [dragActive, setDragActive] = useState(false)
 
-  const { data: response, isLoading, error, isError, refetch } = useQuery({
-    queryKey: ['documents'],
-    queryFn: async () => {
-      const { data } = await axios.get('/api/v1/documents?organization_id=1')
-      return data
-    },
-  })
-
+  const { data: response, isLoading, error, isError, refetch } = useDocuments()
   const documents = response?.data as Document[] | undefined
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -41,11 +33,7 @@ function DocumentsPage() {
   })
 
   if (isLoading) return <TableSkeleton rows={8} />
-  if (isError) {
-    const status = (error as any)?.response?.status
-    if (status === 401) return <UnauthorizedState />
-    return <ErrorState onRetry={() => refetch()} />
-  }
+  if (isError) return <ErrorState onRetry={() => refetch()} />
 
   const documentTypes = [...new Set(documents?.map((d) => d.document_type) ?? [])]
 

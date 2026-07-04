@@ -1,4 +1,5 @@
 import { api, ApiError } from './api'
+import { tokenStorage } from './tokenStorage'
 
 export interface User {
   id: string
@@ -33,7 +34,11 @@ class AuthService {
     const response = await api.post<LoginResponse>('/auth/login', credentials)
 
     if (response.access_token) {
-      localStorage.setItem('auth_token', response.access_token)
+      tokenStorage.setAccessToken(response.access_token)
+    }
+
+    if (response.refresh_token) {
+      tokenStorage.setRefreshToken(response.refresh_token)
     }
 
     return response
@@ -43,7 +48,7 @@ class AuthService {
     try {
       await api.post('/auth/logout')
     } finally {
-      localStorage.removeItem('auth_token')
+      tokenStorage.clear()
     }
   }
 
@@ -51,25 +56,37 @@ class AuthService {
     return api.get<User>('/auth/me')
   }
 
-  async refreshToken(): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>('/auth/refresh')
+  async refreshToken(): Promise<LoginResponse | null> {
+    const refreshToken = tokenStorage.getRefreshToken()
+    if (!refreshToken) return null
 
-    if (response.access_token) {
-      localStorage.setItem('auth_token', response.access_token)
+    try {
+      const response = await api.post<LoginResponse>('/auth/refresh', {
+        refresh_token: refreshToken,
+      })
+
+      if (response.access_token) {
+        tokenStorage.setAccessToken(response.access_token)
+      }
+
+      if (response.refresh_token) {
+        tokenStorage.setRefreshToken(response.refresh_token)
+      }
+
+      return response
+    } catch {
+      return null
     }
-
-    return response
   }
 
   async checkSession(): Promise<User | null> {
-    const token = localStorage.getItem('auth_token')
-    if (!token) return null
+    if (!tokenStorage.hasAccessToken()) return null
 
     try {
       return await this.getCurrentUser()
     } catch (error) {
       if (error instanceof ApiError && error.isUnauthorized) {
-        localStorage.removeItem('auth_token')
+        tokenStorage.clear()
       }
       return null
     }

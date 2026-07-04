@@ -1,7 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, BellOff, Check, CheckCheck, ListFilter as Filter, TriangleAlert as AlertTriangle, Shield, FileText, CircleAlert as AlertCircle, Info, User, GitBranch, Clock, MoveHorizontal as MoreHorizontal, Trash2, ChevronDown } from 'lucide-react'
+import { Bell, BellOff, Check, CheckCheck, ListFilter as Filter, TriangleAlert as AlertTriangle, Shield, FileText, Info, User, GitBranch, Clock, MoveHorizontal as MoreHorizontal, Trash2, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +7,7 @@ import { cn, formatRelativeTime } from '@/lib/utils'
 import { ListSkeleton } from '@/components/common/skeletons'
 import { ErrorState, UnauthorizedState, EmptyState } from '@/components/common/states'
 import { useState } from 'react'
+import { useNotifications, useMarkAllNotificationsAsRead } from '@/hooks'
 import type { Notification } from '@/types'
 
 const notificationTypeConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
@@ -28,20 +27,14 @@ const priorityConfig: Record<string, { label: string; color: string }> = {
 }
 
 function NotificationsPage() {
-  const queryClient = useQueryClient()
   const [filter, setFilter] = useState<'all' | 'unread' | 'critical'>('all')
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
 
-  const { data: response, isLoading, error, isError, refetch } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: async () => {
-      const { data } = await axios.get('/api/v1/notifications?organization_id=1')
-      return data
-    },
-  })
+  const { data: response, isLoading, error, isError, refetch } = useNotifications()
+  const markAllReadMutation = useMarkAllNotificationsAsRead()
 
   const notifications = response?.data as Notification[] | undefined
-  const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0
+  const unreadCount = response?.unread_count ?? notifications?.filter((n) => !n.is_read).length ?? 0
 
   const filteredNotifications = notifications?.filter((n) => {
     const matchesReadStatus = filter === 'all' || (filter === 'unread' && !n.is_read) || (filter === 'critical' && n.priority === 'critical')
@@ -49,21 +42,8 @@ function NotificationsPage() {
     return matchesReadStatus && matchesType
   })
 
-  const markAllReadMutation = useMutation({
-    mutationFn: async () => {
-      await axios.post('/api/v1/notifications/mark-all-read?organization_id=1')
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    },
-  })
-
   if (isLoading) return <ListSkeleton items={5} />
-  if (isError) {
-    const status = (error as any)?.response?.status
-    if (status === 401) return <UnauthorizedState />
-    return <ErrorState onRetry={() => refetch()} />
-  }
+  if (isError) return <ErrorState onRetry={() => refetch()} />
 
   const notificationTypes = [...new Set(notifications?.map((n) => n.notification_type) ?? [])]
 

@@ -1,5 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Workflow as WorkflowIcon, Plus, MoveHorizontal as MoreHorizontal, Clock, User, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Loader as Loader2, Pause, ListFilter as Filter, Search, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +8,7 @@ import { cn, formatDate, formatRelativeTime } from '@/lib/utils'
 import { TableSkeleton } from '@/components/common/skeletons'
 import { ErrorState, UnauthorizedState, EmptyState } from '@/components/common/states'
 import { useState } from 'react'
+import { useWorkflows } from '@/hooks'
 import type { Workflow } from '@/types'
 
 type WorkflowStatus = 'pending' | 'in_progress' | 'completed' | 'blocked'
@@ -32,14 +31,7 @@ function WorkflowsPage() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: response, isLoading, error, isError, refetch } = useQuery({
-    queryKey: ['workflows'],
-    queryFn: async () => {
-      const { data } = await axios.get('/api/v1/workflows?organization_id=1')
-      return data
-    },
-  })
-
+  const { data: response, isLoading, error, isError, refetch } = useWorkflows()
   const workflows = response?.data as Workflow[] | undefined
 
   const columns: { status: WorkflowStatus; title: string }[] = [

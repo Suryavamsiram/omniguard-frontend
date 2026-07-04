@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
+import { useDashboard } from '@/hooks/useApi'
 import { motion } from 'framer-motion'
 import { Shield, TriangleAlert as AlertTriangle, GitBranch, FileCheck, Users, TrendingUp, TrendingDown, ArrowUpRight, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -51,14 +50,7 @@ const recentActivity = [
 ]
 
 function DashboardPage() {
-  const { data: response, isLoading, error, isError, refetch } = useQuery({
-    queryKey: ['dashboard-metrics'],
-    queryFn: async () => {
-      const { data } = await axios.get('/api/v1/analytics/dashboard/executive?organization_id=1')
-      return data
-    },
-  })
-
+  const { data: response, isLoading, error, isError, refetch } = useDashboard()
   const metrics = response?.metrics as DashboardMetrics | undefined
 
   if (isLoading) return <DashboardSkeleton />

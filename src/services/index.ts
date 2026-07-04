@@ -1,4 +1,5 @@
 export * from './api'
+export * from './tokenStorage'
 export * from './auth.service'
 export * from './organizations.service'
 export * from './analytics.service'
