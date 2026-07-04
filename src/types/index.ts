@@ -72,7 +72,7 @@ export interface Finding {
 }
 
 export interface Repository {
-  id: number
+  id: string
   name: string
   provider: 'github' | 'gitlab'
   url: string
