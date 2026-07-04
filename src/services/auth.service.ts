@@ -16,6 +16,13 @@ export interface LoginCredentials {
   password: string
 }
 
+export interface RegisterCredentials {
+  email: string
+  password: string
+  name: string
+  organization_name?: string
+}
+
 export interface LoginResponse {
   access_token: string
   refresh_token?: string
@@ -32,6 +39,20 @@ export interface AuthState {
 class AuthService {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>('/auth/login', credentials)
+
+    if (response.access_token) {
+      tokenStorage.setAccessToken(response.access_token)
+    }
+
+    if (response.refresh_token) {
+      tokenStorage.setRefreshToken(response.refresh_token)
+    }
+
+    return response
+  }
+
+  async register(credentials: RegisterCredentials): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/register', credentials)
 
     if (response.access_token) {
       tokenStorage.setAccessToken(response.access_token)

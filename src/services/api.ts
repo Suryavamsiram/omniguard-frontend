@@ -106,7 +106,7 @@ async function refreshAccessToken(): Promise<string | null> {
     return null
   }
 
-  const endpoint = import.meta.env.VITE_REFRESH_TOKEN_ENDPOINT ?? '/api/v1/auth/refresh'
+  const endpoint = import.meta.env.VITE_REFRESH_TOKEN_ENDPOINT ?? `${API_BASE_URL}/auth/refresh`
 
   try {
     const response = await axios.post(endpoint, { refresh_token: refreshToken })
